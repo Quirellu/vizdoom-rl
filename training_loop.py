@@ -7,12 +7,13 @@ from vizdoom import gymnasium_wrapper
 
 num_episodes = 10000
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def main():
 
     env = initialize_env()
 
-    agent_ppo = initialize_agent_ppo(env)
+    agent_ppo = initialize_agent_ppo(env, device)
     buffer = RolloutBuffer()
 
 
@@ -23,7 +24,7 @@ def main():
         obs_current, info = env.reset()
 
         while not done:
-            state = torch.tensor(obs_current["screen"], dtype=torch.float32).unsqueeze(0)
+            state = torch.tensor(obs_current["screen"], dtype=torch.float32, device=device).unsqueeze(0)
 
             with torch.no_grad():
                 action, log_prob, entropy, value = agent_ppo.act(state)
@@ -37,12 +38,12 @@ def main():
             next_value = 0.0
 
             if truncated and not terminated:
-                next_state = torch.tensor(next_observation["screen"], dtype=torch.float32).unsqueeze(0)
+                next_state = torch.tensor(next_observation["screen"], dtype=torch.float32, device=device).unsqueeze(0)
                 with torch.no_grad():
                     _, next_value_tensor = agent_ppo.forward(next_state)
                     next_value = next_value_tensor.item()
 
-            buffer.store(state.squeeze(0), action, reward, terminated, truncated, log_prob, value, next_value)
+            buffer.store(state.squeeze(0), env_action, reward, terminated, truncated, log_prob, value, next_value)
 
             obs_current = next_observation
             episode_reward += reward
@@ -61,15 +62,21 @@ def initialize_env():
 
     return env
 
-def initialize_agent_ppo(env):
+def initialize_agent_ppo(env, device):
     action_dim = env.action_space.n
-    agent = PPO(action_dim=action_dim, learning_rate=0.001)
+    agent = PPO(action_dim=action_dim, learning_rate=0.001).to(device)
 
     return agent
 
 def optimize_agent(agent, buffer):
 
     states, actions, rewards, terminateds, truncateds, old_log_probs, values, next_values = buffer.get_tensors()
+    device = next(agent.parameters()).device
+
+    states = states.to(device)
+    actions = actions.to(device)
+    old_log_probs = old_log_probs.to(device)
+    values = values.to(device)
 
     returns = agent.compute_returns(
         rewards,
@@ -81,6 +88,7 @@ def optimize_agent(agent, buffer):
 
     #print(f"Returns: {returns}")
 
+    returns = returns.to(device)
     advantages = agent.compute_advantages(returns, states)
 
     metrics = agent.optimize_model(states, actions, old_log_probs, returns, advantages)
