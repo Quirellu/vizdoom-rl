@@ -2,6 +2,33 @@ import torch
 from torch import nn
 from torch.nn.parameter import UninitializedParameter
 
+class ResidualBlock(nn.Module):
+
+    def __init__(self, channels):
+
+        super().__init__()
+
+        self.block = nn.Sequential(
+
+            nn.Conv2d(channels, channels, 3, 1, 1),
+            nn.SiLU(),
+
+            nn.Conv2d(channels, channels, 3, 1, 1)
+        )
+
+        self.activation = nn.SiLU()
+
+    def forward(self, x):
+
+        residual = x
+
+        x = self.block(x)
+
+        x = x + residual
+
+        x = self.activation(x)
+
+        return x
 
 class PolicyValueNetwork(nn.Module):
 
@@ -11,20 +38,26 @@ class PolicyValueNetwork(nn.Module):
         self.features = nn.Sequential(
 
             nn.Conv2d(3, 32, 8, 4),
-            nn.ReLU(),
+            nn.SiLU(),
+
+            ResidualBlock(32),
 
             nn.Conv2d(32, 64, 4, 2),
-            nn.ReLU(),
+            nn.SiLU(),
+
+            ResidualBlock(64),
 
             nn.Conv2d(64, 64, 3, 1),
-            nn.ReLU(),
+            nn.SiLU(),
+
+            ResidualBlock(64),
 
             nn.Flatten()
         )
 
         self.shared = nn.Sequential(
             nn.LazyLinear(512),
-            nn.ReLU()
+            nn.SiLU()
         )
 
         self.policy_head = nn.Linear(512, action_dim)
