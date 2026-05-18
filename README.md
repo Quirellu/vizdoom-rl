@@ -1,6 +1,6 @@
 # Vizdoom-rl
 
-A short project attempting to apply reinforcement learning towards Vizdoom.
+A short project attempting to apply reinforcement learning concepts towards Vizdoom.
 
 **What was done:**
 1. Basic training loop for PPO agent
