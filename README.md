@@ -1,4 +1,4 @@
-### Vizdoom-rl
+# Vizdoom-rl
 
 A short project attempting to apply reinforcement learning towards Vizdoom.
 
