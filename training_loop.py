@@ -5,7 +5,7 @@ from RolloutBuffer import RolloutBuffer
 import gymnasium
 from vizdoom import gymnasium_wrapper, ScreenFormat
 
-num_episodes = 10000
+num_episodes = 100000
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -65,14 +65,14 @@ def initialize_env():
     env = gymnasium.make(
         "VizdoomBasic-v1",
         render_mode="human",
-        frame_skip=2
+        frame_skip=4
     )
 
     return env
 
 def initialize_agent_ppo(env, device):
     action_dim = env.action_space.n
-    agent = PPO(action_dim=action_dim, learning_rate=0.0001).to(device)
+    agent = PPO(action_dim=action_dim, learning_rate=2.5e-4).to(device)
 
     return agent
 
