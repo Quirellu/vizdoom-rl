@@ -3,16 +3,14 @@ from collections import deque
 import torch
 import torch.nn as nn
 
-from PPOPolicyNetwork import PolicyNetwork
+from PPOPolicyValueNetwork import PolicyValueNetwork
 from PPOValueNetwork import ValueNetwork
 
 class PPO(nn.Module):
-    def __init__(self, action_dim, optimizer=None, learning_rate = 5e-4, clip_epsilon = 0.2) -> None:
+    def __init__(self, action_dim, optimizer=None, learning_rate = 1e-3, clip_epsilon = 0.2) -> None:
         super().__init__()
 
-        self.policy_net_ = PolicyNetwork(action_dim)
-
-        self.value_net_ =  ValueNetwork()
+        self.network = PolicyValueNetwork(action_dim)
 
         self.clip_epsilon_ = clip_epsilon
         self.value_coef_ = 0.5
@@ -27,8 +25,7 @@ class PPO(nn.Module):
             self.optimizer_ = optimizer
 
     def forward(self, x):
-        logits = self.policy_net_(x)
-        value = self.value_net_(x)
+        logits, value = self.network(x)
 
         dist = torch.distributions.Categorical(logits=logits)
 
@@ -67,7 +64,8 @@ class PPO(nn.Module):
 
     #A_t = G_t - V(s_t)
     def compute_advantages(self, returns, states):
-        values = self.value_net_(states).squeeze(-1)
+
+        _ , values = self.forward(states)
 
         advantages = returns - values
         advantages = advantages.detach()

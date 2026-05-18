@@ -3,7 +3,7 @@ import torch
 from PPO import PPO
 from RolloutBuffer import RolloutBuffer
 import gymnasium
-from vizdoom import gymnasium_wrapper
+from vizdoom import gymnasium_wrapper, ScreenFormat
 
 num_episodes = 10000
 
@@ -16,6 +16,8 @@ def main():
     agent_ppo = initialize_agent_ppo(env, device)
     buffer = RolloutBuffer()
 
+    total_reward = 0
+    episode_window_reward = 0
 
     for episode in range(num_episodes):
         episode_reward = 0
@@ -48,23 +50,29 @@ def main():
             obs_current = next_observation
             episode_reward += reward
 
-        print(f"Episode: {episode}, Total Reward: {episode_reward}")
+        total_reward += episode_reward
+        print(f"Episode: {episode}, Episode Reward: {episode_reward}, Average Reward: {total_reward / (episode + 1)}")
+
+        episode_window_reward += episode_reward
 
         if (episode + 1) % 5 == 0:
             optimize_agent(agent_ppo, buffer)
-            print("Optimizing Agent.")
+            print(f"Episode Window Average Reward: {episode_window_reward / 5}")
+            episode_window_reward = 0
+            print("Optimizing Agent...")
 
 def initialize_env():
     env = gymnasium.make(
         "VizdoomBasic-v1",
-        render_mode="human"
+        render_mode="human",
+        frame_skip=2
     )
 
     return env
 
 def initialize_agent_ppo(env, device):
     action_dim = env.action_space.n
-    agent = PPO(action_dim=action_dim, learning_rate=0.001).to(device)
+    agent = PPO(action_dim=action_dim, learning_rate=0.0001).to(device)
 
     return agent
 
