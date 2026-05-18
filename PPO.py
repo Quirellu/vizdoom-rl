@@ -54,7 +54,7 @@ class PPO(nn.Module):
             elif truncated:
                 discounted_return = next_value
             else:
-                discounted_return = 1 #This condition should never happen if function is called after episode end
+                discounted_return = 0 #This condition should never happen if function is called after episode end
 
             discounted_return = reward + discount_factor * discounted_return
 
