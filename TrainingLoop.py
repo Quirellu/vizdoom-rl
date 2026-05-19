@@ -1,3 +1,5 @@
+from collections import deque
+
 import torch
 
 from PPO import PPO
@@ -24,6 +26,8 @@ def main():
         done = False
 
         obs_current, info = env.reset()
+
+        frame_window = deque(maxlen=4)
 
         while not done:
             state = torch.tensor(obs_current["screen"], dtype=torch.float32, device=device).unsqueeze(0)
@@ -58,8 +62,9 @@ def main():
         if (episode + 1) % 5 == 0:
             optimize_agent(agent_ppo, buffer)
             print(f"Episode Window Average Reward: {episode_window_reward / 5}")
-            episode_window_reward = 0
             print("Optimizing Agent...")
+
+            episode_window_reward = 0
 
 def initialize_env():
     env = gymnasium.make(
