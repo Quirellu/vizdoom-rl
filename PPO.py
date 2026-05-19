@@ -7,10 +7,12 @@ from PPOPolicyValueNetwork import PolicyValueNetwork
 from PPOValueNetwork import ValueNetwork
 
 class PPO(nn.Module):
-    def __init__(self, action_dim, optimizer=None, learning_rate = 1e-3, clip_epsilon = 0.2) -> None:
+    def __init__(self, action_dim, frame_channel = 3, stack_frames = 4, optimizer=None, learning_rate = 1e-3, clip_epsilon = 0.2) -> None:
         super().__init__()
 
-        self.network = PolicyValueNetwork(action_dim)
+        in_channels = stack_frames * frame_channel
+
+        self.network = PolicyValueNetwork(action_dim, in_channels)
 
         self.clip_epsilon_ = clip_epsilon
         self.value_coef_ = 0.5

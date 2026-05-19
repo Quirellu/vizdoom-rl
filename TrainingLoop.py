@@ -2,12 +2,17 @@ from collections import deque
 
 import torch
 
+from FrameStack import FrameStack
 from PPO import PPO
 from RolloutBuffer import RolloutBuffer
 import gymnasium
-from vizdoom import gymnasium_wrapper, ScreenFormat
+from vizdoom import gymnasium_wrapper
 
 num_episodes = 100000
+
+frame_channel_size = 3
+frame_stack_size = 4
+frame_skip = 2
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -27,10 +32,15 @@ def main():
 
         obs_current, info = env.reset()
 
-        frame_window = deque(maxlen=4)
+        frame_stack = FrameStack(stack_size = frame_stack_size)
+        frame_stack.reset(obs_current["screen"])
 
         while not done:
-            state = torch.tensor(obs_current["screen"], dtype=torch.float32, device=device).unsqueeze(0)
+
+
+            stack_np = frame_stack.step(obs_current["screen"])
+
+            state = torch.tensor(stack_np, dtype=torch.float32, device=device).unsqueeze(0)
 
             with torch.no_grad():
                 action, log_prob, entropy, value = agent_ppo.act(state)
@@ -70,14 +80,14 @@ def initialize_env():
     env = gymnasium.make(
         "VizdoomBasic-v1",
         render_mode="human",
-        frame_skip=4
+        frame_skip=frame_skip
     )
 
     return env
 
 def initialize_agent_ppo(env, device):
     action_dim = env.action_space.n
-    agent = PPO(action_dim=action_dim, learning_rate=2.5e-4).to(device)
+    agent = PPO(action_dim=action_dim, frame_channel= frame_channel_size, stack_frames = frame_stack_size, learning_rate=2.5e-4).to(device)
 
     return agent
 

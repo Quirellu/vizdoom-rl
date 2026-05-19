@@ -32,12 +32,14 @@ class ResidualBlock(nn.Module):
 
 class PolicyValueNetwork(nn.Module):
 
-    def __init__(self, action_dim):
+    def __init__(self, action_dim, input_channels = 3):
         super().__init__()
+
+
 
         self.features = nn.Sequential(
 
-            nn.Conv2d(3, 32, 8, 4),
+            nn.Conv2d(input_channels, 32, 8, 4),
             nn.SiLU(),
 
             ResidualBlock(32),
