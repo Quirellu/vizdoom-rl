@@ -17,6 +17,7 @@ class FrameStack:
         return np.stack(self.frames, axis=0)
 
     def step(self, frame):
+        self.frames.append(frame)
         frames = np.array(self.frames)
 
         frames = np.transpose(
