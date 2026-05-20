@@ -3,18 +3,20 @@ from collections import deque
 import matplotlib.pyplot as plt
 import torch
 
+from configs.environment_config import EnvironmentConfig
+from configs.plot_config import PlotConfig
+from configs.training_config import TrainingConfig
 from frame_stack import FrameStack
 from ppo import PPO
 from rollout_buffer import RolloutBuffer
 import gymnasium
 from vizdoom import gymnasium_wrapper
 
-num_episodes = 100000
-reward_smoothing_points = 10
+train_config = TrainingConfig()
+plot_config = PlotConfig()
+env_config = EnvironmentConfig()
 
-frame_channel_size = 3
-frame_stack_size = 4
-frame_skip = 3
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -29,9 +31,9 @@ def main():
     reward_list = list()
     episode_window_reward = 0
 
-    frame_stack = FrameStack(stack_size=frame_stack_size)
+    frame_stack = FrameStack(stack_size=env_config.frame_stack_size)
 
-    for episode in range(num_episodes):
+    for episode in range(train_config.num_episodes):
         episode_reward = 0
         done = False
 
@@ -41,7 +43,6 @@ def main():
         frame_stack.reset(obs_current["screen"])
 
         while not done:
-
 
             stack_np = frame_stack.step(obs_current["screen"])
 
@@ -83,21 +84,21 @@ def main():
             episode_window_reward = 0
 
     env.close()
-    smoothed_rewards = plot_rewards(reward_list, reward_smoothing_points)
+    smoothed_rewards = plot_rewards(reward_list, plot_config.reward_smoothing_points)
     print("Training Complete!")
 
 def initialize_env():
     env = gymnasium.make(
-        "VizdoomBasic-v1",
-        render_mode="human",
-        frame_skip=frame_skip
+        env_config.name,
+        render_mode=env_config.render_mode,
+        frame_skip=env_config.frame_skip
     )
 
     return env
 
 def initialize_agent_ppo(env, device):
     action_dim = env.action_space.n
-    agent = PPO(action_dim=action_dim, frame_channel= frame_channel_size, stack_frames = frame_stack_size, learning_rate=2.5e-4).to(device)
+    agent = PPO(action_dim=action_dim, frame_channel= env_config.frame_channel_size, stack_frames = env_config.frame_stack_size, learning_rate=2.5e-4).to(device)
 
     return agent
 
