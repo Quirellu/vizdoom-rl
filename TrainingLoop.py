@@ -1,5 +1,6 @@
 from collections import deque
 
+import matplotlib.pyplot as plt
 import torch
 
 from FrameStack import FrameStack
@@ -9,10 +10,11 @@ import gymnasium
 from vizdoom import gymnasium_wrapper
 
 num_episodes = 100000
+reward_smoothing_points = 10
 
 frame_channel_size = 3
 frame_stack_size = 4
-frame_skip = 2
+frame_skip = 3
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -24,7 +26,10 @@ def main():
     buffer = RolloutBuffer()
 
     total_reward = 0
+    reward_list = list()
     episode_window_reward = 0
+
+    frame_stack = FrameStack(stack_size=frame_stack_size)
 
     for episode in range(num_episodes):
         episode_reward = 0
@@ -32,7 +37,7 @@ def main():
 
         obs_current, info = env.reset()
 
-        frame_stack = FrameStack(stack_size = frame_stack_size)
+
         frame_stack.reset(obs_current["screen"])
 
         while not done:
@@ -65,6 +70,7 @@ def main():
             episode_reward += reward
 
         total_reward += episode_reward
+        reward_list.append(episode_reward)
         print(f"Episode: {episode}, Episode Reward: {episode_reward}, Average Reward: {total_reward / (episode + 1)}")
 
         episode_window_reward += episode_reward
@@ -75,6 +81,10 @@ def main():
             print("Optimizing Agent...")
 
             episode_window_reward = 0
+
+    env.close()
+    smoothed_rewards = plot_rewards(reward_list, reward_smoothing_points)
+    print("Training Complete!")
 
 def initialize_env():
     env = gymnasium.make(
@@ -98,25 +108,56 @@ def optimize_agent(agent, buffer):
 
     states = states.to(device)
     actions = actions.to(device)
+    rewards = rewards.to(device)
+    terminateds = terminateds.to(device)
+    truncateds = truncateds.to(device)
     old_log_probs = old_log_probs.to(device)
-    values = values.to(device)
+    values = values.to(device).view(-1)
+    next_values = next_values.to(device).view(-1)
 
-    returns = agent.compute_returns(
+    advantages = agent.compute_advantages(
         rewards,
+        values,
         terminateds,
         truncateds,
+        next_values,
         discount_factor=0.99,
-        next_values=next_values
+        gae_lambda=0.95
     )
-
-    #print(f"Returns: {returns}")
-
-    returns = returns.to(device)
-    advantages = agent.compute_advantages(returns, states)
+    returns = advantages + values
 
     metrics = agent.optimize_model(states, actions, old_log_probs, returns, advantages)
 
     buffer.clear()
+
+def plot_rewards(reward_list, smoothing_points):
+    if not reward_list:
+        print("No rewards to plot.")
+        return []
+
+    if smoothing_points < 1:
+        raise ValueError("smoothing_points must be at least 1")
+
+    episodes = range(1, len(reward_list) + 1)
+    reward_window = deque(maxlen=smoothing_points)
+    smoothed_rewards = []
+
+    for reward in reward_list:
+        reward_window.append(reward)
+        smoothed_rewards.append(sum(reward_window) / len(reward_window))
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(episodes, reward_list, label="Episode Reward")
+    plt.plot(episodes, smoothed_rewards, label=f"{smoothing_points}-Episode Average")
+    plt.xlabel("Episode")
+    plt.ylabel("Reward")
+    plt.title("Training Rewards")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    return smoothed_rewards
 
 if __name__ == '__main__':
     main()

@@ -19,7 +19,7 @@ class PPO(nn.Module):
         self.entropy_coef_ = 0.01
 
         if optimizer is None:
-            self.optimizer_ = torch.optim.Adam(
+            self.optimizer_ = torch.optim.AdamW(
                 self.parameters(),
                 lr=learning_rate
             )
@@ -64,27 +64,50 @@ class PPO(nn.Module):
 
         return torch.tensor(list(returns), dtype=torch.float32)
 
-    #A_t = G_t - V(s_t)
-    def compute_advantages(self, returns, states):
+    def compute_advantages(
+            self,
+            rewards,
+            values,
+            terminateds,
+            truncateds,
+            next_values,
+            discount_factor=0.99,
+            gae_lambda=0.95
+    ):
+        advantages = torch.zeros_like(rewards)
+        gae = torch.zeros((), dtype=rewards.dtype, device=rewards.device)
 
-        _ , values = self.forward(states)
+        for step in reversed(range(len(rewards))):
+            if terminateds[step].item():
+                next_value = torch.zeros((), dtype=rewards.dtype, device=rewards.device)
+                next_gae = torch.zeros((), dtype=rewards.dtype, device=rewards.device)
+            elif truncateds[step].item():
+                next_value = next_values[step]
+                next_gae = torch.zeros((), dtype=rewards.dtype, device=rewards.device)
+            else:
+                next_value = values[step + 1] if step + 1 < len(values) else next_values[step]
+                next_gae = gae
 
-        advantages = returns - values
-        advantages = advantages.detach()
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+            delta = rewards[step] + discount_factor * next_value - values[step]
+            gae = delta + discount_factor * gae_lambda * next_gae
+            advantages[step] = gae
 
-        return advantages
+        return advantages.detach()
 
     def optimize_model(self, states, actions, old_log_probs, returns, advantages):
 
         dist, values = self.forward(states)
         new_log_probs = dist.log_prob(actions)
+        old_log_probs = old_log_probs.view(-1)
+        returns = returns.view(-1)
+        advantages = advantages.view(-1)
 
         entropy = dist.entropy().mean()
 
-        values = values.squeeze(-1)
+        values = values.view(-1)
 
         ratio = torch.exp(new_log_probs - old_log_probs)
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         unclipped = ratio * advantages
 
@@ -107,10 +130,6 @@ class PPO(nn.Module):
             "value_loss": value_loss.item(),
             "entropy": entropy.item()
         }
-
-
-
-
 
 
 

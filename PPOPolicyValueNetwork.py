@@ -11,9 +11,11 @@ class ResidualBlock(nn.Module):
         self.block = nn.Sequential(
 
             nn.Conv2d(channels, channels, 3, 1, 1),
+            nn.GroupNorm(8, channels),
             nn.SiLU(),
 
-            nn.Conv2d(channels, channels, 3, 1, 1)
+            nn.Conv2d(channels, channels, 3, 1, 1),
+            nn.GroupNorm(8, channels)
         )
 
         self.activation = nn.SiLU()
@@ -35,8 +37,6 @@ class PolicyValueNetwork(nn.Module):
     def __init__(self, action_dim, input_channels = 3):
         super().__init__()
 
-
-
         self.features = nn.Sequential(
 
             nn.Conv2d(input_channels, 32, 8, 4),
@@ -54,17 +54,26 @@ class PolicyValueNetwork(nn.Module):
 
             ResidualBlock(64),
 
+            nn.AdaptiveAvgPool2d((1, 1)),
+
             nn.Flatten()
         )
 
-        self.shared = nn.Sequential(
-            nn.LazyLinear(512),
-            nn.SiLU()
+        self.policy_head = nn.Sequential(
+
+            nn.Linear(64, 256),
+            nn.SiLU(),
+
+            nn.Linear(256, action_dim)
         )
 
-        self.policy_head = nn.Linear(512, action_dim)
+        self.value_head = nn.Sequential(
 
-        self.value_head = nn.Linear(512, 1)
+            nn.Linear(64, 256),
+            nn.SiLU(),
+
+            nn.Linear(256, 1)
+        )
 
 
     def forward(self, x):
@@ -75,8 +84,6 @@ class PolicyValueNetwork(nn.Module):
         x = x / 255.0
 
         x = self.features(x)
-
-        x = self.shared(x)
 
         logits = self.policy_head(x)
 

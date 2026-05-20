@@ -56,11 +56,11 @@ class RolloutBuffer:
 
         log_probs = torch.stack(
             self.log_probs
-        )
+        ).view(-1)
 
         values = torch.stack(
             self.values
-        ).squeeze(-1)
+        ).view(-1)
 
         next_values = torch.tensor(
             self.next_values,
