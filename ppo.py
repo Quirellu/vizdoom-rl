@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 
 from ppo_policy_value_network import PolicyValueNetwork
-from PPOValueNetwork import ValueNetwork
 
 class PPO(nn.Module):
     def __init__(self, action_dim, frame_channel = 3, stack_frames = 4, optimizer=None, learning_rate = 1e-3, clip_epsilon = 0.2) -> None:
@@ -130,7 +129,6 @@ class PPO(nn.Module):
             "value_loss": value_loss.item(),
             "entropy": entropy.item()
         }
-
 
 
 
