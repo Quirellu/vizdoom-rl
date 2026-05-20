@@ -3,9 +3,9 @@ from collections import deque
 import matplotlib.pyplot as plt
 import torch
 
-from FrameStack import FrameStack
-from PPO import PPO
-from RolloutBuffer import RolloutBuffer
+from frame_stack import FrameStack
+from ppo import PPO
+from rollout_buffer import RolloutBuffer
 import gymnasium
 from vizdoom import gymnasium_wrapper
 

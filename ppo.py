@@ -3,7 +3,7 @@ from collections import deque
 import torch
 import torch.nn as nn
 
-from PPOPolicyValueNetwork import PolicyValueNetwork
+from ppo_policy_value_network import PolicyValueNetwork
 from PPOValueNetwork import ValueNetwork
 
 class PPO(nn.Module):
