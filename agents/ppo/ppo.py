@@ -3,7 +3,8 @@ from collections import deque
 import torch
 import torch.nn as nn
 
-from ppo_policy_value_network import PolicyValueNetwork
+from agents.ppo.ppo_policy_value_network import PolicyValueNetwork
+
 
 class PPO(nn.Module):
     def __init__(self, action_dim, frame_channel = 3, stack_frames = 4, optimizer=None, learning_rate = 1e-3, clip_epsilon = 0.2) -> None:
