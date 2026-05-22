@@ -4,7 +4,6 @@ from agents.ppo.ppo import PPO
 from buffers.rollout_buffer import RolloutBuffer
 from configs.environment_config import EnvironmentConfig
 from configs.training_config import TrainingConfig
-from env.frame_stack import FrameStack
 from vizdoom import gymnasium_wrapper
 
 class Trainer:
@@ -23,21 +22,19 @@ class Trainer:
 
     def train(self):
 
-        frame_stack = FrameStack(stack_size=self.env_config.frame_stack_size)
-
         for episode in range(self.config.num_episodes):
             episode_reward = 0
             done = False
 
             obs_current, info = self.env.reset()
 
-            frame_stack.reset(obs_current["screen"])
-
             while not done:
 
-                stack_np = frame_stack.step(obs_current["screen"])
+                state = torch.tensor(obs_current["screen"],dtype=torch.float32,device=self.agent_device)
 
-                state = torch.tensor(stack_np, dtype=torch.float32, device=self.agent_device).unsqueeze(0)
+                state = state.permute(0, 3, 1, 2) #[stack_size, height, width, channels] -> [stack_size, channels, height, width]
+
+                state = state.flatten(0, 1).unsqueeze(0) #[batch_size, channels * stack_size, height, width]]
 
                 with torch.no_grad():
                     action, log_prob, entropy, value = self.agent.act(state)
