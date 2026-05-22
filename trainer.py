@@ -11,7 +11,6 @@ class Trainer:
     def __init__(self, env, model, device):
 
         self.env = env
-        self.env_config = EnvironmentConfig()
 
         self.agent = model
         self.agent_device = device
