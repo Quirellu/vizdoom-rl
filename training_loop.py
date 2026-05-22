@@ -13,7 +13,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     env = initialize_env(env_config)
-    env = FrameStackObservation(env, stack_size=4)
+    env = FrameStackObservation(env, stack_size=env_config.frame_stack_size)
 
     agent_ppo = initialize_agent_ppo(env, device, env_config)
     trainer = Trainer(env, agent_ppo, device)
