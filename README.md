@@ -4,7 +4,7 @@ A short project attempting to apply reinforcement learning concepts towards Vizd
 
 **What was done:**
 1. Basic training loop for PPO agent
-2. Stacking Frames as input instead of single frame.
+2. Stacking Frames as input instead of single frame using Gymnasium Wrappers
 
 **To be added:**
 * Recurrent networks to better support stacking frames
